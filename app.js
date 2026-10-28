@@ -52,17 +52,36 @@ MENU.forEach((cat, ci) => {
   panel.setAttribute('aria-labelledby', tab.id);
   panel.innerHTML = `
     <div class="panel-head"><h3>${cat.name}</h3>${cat.note ? `<p>${cat.note}</p>` : ''}</div>
-    ${cat.img ? `<div class="feature"><figure class="tilt"><img class="depth" src="${cat.img}" alt="" loading="lazy"></figure><div>${list}</div></div>` : list}`;
+    ${cat.img ? `<div class="feature"><figure class="tilt depthpic"><img class="bg" src="${cat.img}" alt="" loading="lazy"><img class="fg" src="${cat.img}" alt="" loading="lazy"></figure><div>${list}</div></div>` : list}`;
   panels.append(panel);
 });
 
+// Prices count up from $0 (handles "sm $15 · lg $29")
+function countUp(panel) {
+  if (reduced) return;
+  $$('.p', panel).forEach(el => {
+    const txt = el.dataset.v ??= el.textContent, t0 = performance.now();
+    const tick = now => {
+      const k = Math.min(1, (now - t0) / 900), e = 1 - (1 - k) ** 3;
+      el.textContent = txt.replace(/\d+/g, n => Math.round(n * e));
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
 function selectTab(tab, focus) {
-  $$('.tab', tabs).forEach(t => { const on = t === tab; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; });
+  const all = $$('.tab', tabs);
+  const from = all.findIndex(t => t.getAttribute('aria-selected') === 'true'), to = all.indexOf(tab);
+  all.forEach(t => { const on = t === tab; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; });
   $$('.panel', panels).forEach(p => {
     const on = p.id === tab.getAttribute('aria-controls');
     p.hidden = !on;
-    // restart item animation on each switch
-    if (on) $$('.item', p).forEach(it => { it.style.animation = 'none'; it.offsetHeight; it.style.animation = ''; });
+    if (!on) return;
+    p.style.setProperty('--dir', Math.sign(to - from));
+    // restart panel + item animations on each switch
+    [p, ...$$('.item', p)].forEach(it => { it.style.animation = 'none'; it.offsetHeight; it.style.animation = ''; });
+    countUp(p);
   });
   tab.scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduced ? 'auto' : 'smooth' });
   if (focus) tab.focus();
@@ -127,6 +146,7 @@ addEventListener('scroll', () => {
       const r = s.getBoundingClientRect();
       a.classList.toggle('active', r.top < 140 && r.bottom > 140);
     });
+    updateBuilder();
     ticking = false;
   });
 }, { passive: true });
@@ -157,11 +177,13 @@ function initTilt() {
       el.style.setProperty('--rx', `${(.5 - y) * 12}deg`);
       el.style.setProperty('--gx', `${x * 100}%`);
       el.style.setProperty('--gy', `${y * 100}%`);
+      el.style.setProperty('--px', x - .5);
+      el.style.setProperty('--py', y - .5);
     });
     el.addEventListener('pointerleave', () => {
       el.classList.remove('tilting');
-      el.style.setProperty('--rx', '0deg');
-      el.style.setProperty('--ry', '0deg');
+      ['--rx', '--ry'].forEach(v => el.style.setProperty(v, '0deg'));
+      ['--px', '--py'].forEach(v => el.style.setProperty(v, 0));
     });
   });
 }
@@ -202,3 +224,135 @@ $$('.htable tr').forEach(tr => tr.classList.toggle('today', tr.dataset.days.spli
 
 // ---- Pause background videos when off-screen (saves battery on phones)
 $$('video').forEach(v => new IntersectionObserver(([e]) => { e.isIntersecting ? v.play().catch(() => {}) : v.pause(); }).observe(v));
+
+// ---- Count prices the first time the menu scrolls into view
+new IntersectionObserver(([e], obs) => {
+  if (!e.isIntersecting) return;
+  countUp($('.panel:not([hidden])', panels));
+  obs.disconnect();
+}, { threshold: .2 }).observe(panels);
+
+// ---- Sub builder: layers drop in as you scroll (side view, bottom to top)
+const range = (n, f) => Array.from({ length: n }, (_, i) => f(i)).join('');
+const LAYERS = [
+  ['Baguette', `<path d="M40 330 L560 330 Q572 332 566 354 Q556 394 500 396 L100 396 Q44 394 34 354 Q28 332 40 330Z" fill="url(#crust)"/><rect x="38" y="320" width="524" height="16" rx="7" fill="#f4dca6"/>`],
+  ['Lettuce', `<path d="M18 326 ${range(14, i => `Q${38 + i * 40} ${i % 2 ? 292 : 300} ${58 + i * 40} 310`)} L582 326Z" fill="#6fae3a"/><path d="M30 318 ${range(13, i => `Q${50 + i * 40} 306 ${70 + i * 40} 316`)}" fill="none" stroke="#4f8a2a" stroke-width="3"/>`],
+  ['Pastrami', range(8, i => `<ellipse cx="${72 + i * 65}" cy="${292 - (i % 2) * 6}" rx="50" ry="17" fill="${i % 2 ? '#9c3a38' : '#b24a45'}" stroke="#f0b3a0" stroke-width="3"/>`) + range(7, i => `<ellipse cx="${104 + i * 65}" cy="276" rx="46" ry="14" fill="#a8423f" stroke="#e9a594" stroke-width="3"/>`)],
+  ['Tomato', range(5, i => `<ellipse cx="${100 + i * 100}" cy="260" rx="44" ry="11" fill="#e0402f" stroke="#b52a1e" stroke-width="3"/><ellipse cx="${88 + i * 100}" cy="259" rx="6" ry="2.5" fill="#ffd2a0"/><ellipse cx="${112 + i * 100}" cy="261" rx="6" ry="2.5" fill="#ffd2a0"/>`)],
+  ['Pickles', range(6, i => `<ellipse cx="${90 + i * 84}" cy="248" rx="32" ry="8" fill="#6f8f24"/><ellipse cx="${90 + i * 84}" cy="247" rx="22" ry="4" fill="#b6c95a"/>`)],
+  ['Red onion', range(6, i => `<ellipse cx="${120 + i * 74}" cy="240" rx="30" ry="6" fill="none" stroke="#b05a9a" stroke-width="3"/><ellipse cx="${120 + i * 74}" cy="240" rx="18" ry="3.5" fill="none" stroke="#e8c6e0" stroke-width="2"/>`)],
+  ['Sauce', `<path d="M60 234 ${range(12, i => `Q${80 + i * 40} ${i % 2 ? 222 : 246} ${100 + i * 40} 234`)}" fill="none" stroke="#f2c14e" stroke-width="7" stroke-linecap="round"/>`],
+  ['Top it off', `<path d="M34 238 Q28 212 62 188 Q132 128 300 124 Q468 128 538 188 Q572 212 566 238Z" fill="url(#crust)"/><rect x="40" y="228" width="520" height="14" rx="7" fill="#f4dca6"/><path d="M110 168 Q200 136 300 134" fill="none" stroke="rgba(255,240,210,.45)" stroke-width="8" stroke-linecap="round"/>${range(16, i => `<ellipse cx="${120 + (i * 53) % 370}" cy="${150 + (i * 29) % 50}" rx="5" ry="2.4" fill="#fff4dc" transform="rotate(${(i * 37) % 70 - 35} ${120 + (i * 53) % 370} ${150 + (i * 29) % 50})"/>`)}`],
+];
+const sub = $('#sub'), steps = $('#steps'), builder = $('#builder'), builderEnd = $('.builder-end');
+sub.innerHTML = `<defs><linearGradient id="crust" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9ad5c"/><stop offset="1" stop-color="#a45d1f"/></linearGradient></defs>` +
+  LAYERS.map(([, svg]) => `<g class="layer">${svg}</g>`).join('');
+steps.innerHTML = LAYERS.map(([name]) => `<li>${name}</li>`).join('');
+const layerEls = $$('.layer', sub), stepEls = $$('li', steps);
+
+function updateBuilder() {
+  const r = builder.getBoundingClientRect();
+  const p = reduced ? 1 : Math.min(1, Math.max(0, -r.top / (r.height - innerHeight)));
+  const n = LAYERS.length;
+  layerEls.forEach((g, i) => {
+    const k = Math.min(1, Math.max(0, p * (n + 1) - i)), e = 1 - (1 - k) ** 3;
+    g.style.transform = `translateY(${(1 - e) * -520}px)`;
+    g.style.opacity = k > 0 ? 1 : 0;
+    stepEls[i].classList.toggle('on', k >= 1);
+  });
+  builderEnd.classList.toggle('on', p > n / (n + 1));
+  sub.style.setProperty('--by', `${-14 + p * 28}deg`);
+}
+updateBuilder();
+
+// ---- Embers + smoke over the grill photo and the catering video
+function fire(canvas) {
+  const ctx = canvas.getContext('2d');
+  let w = 0, h = 0, running = false;
+  const size = () => {
+    const r = canvas.getBoundingClientRect(), d = Math.min(devicePixelRatio, 2);
+    w = r.width; h = r.height;
+    canvas.width = w * d; canvas.height = h * d;
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+  };
+  const spawn = (p = {}) => Object.assign(p, {
+    x: Math.random() * w, y: h + Math.random() * 40, vx: (Math.random() - .5) * .5, vy: -(.6 + Math.random() * 1.6),
+    life: 0, max: 90 + Math.random() * 180, r: .8 + Math.random() * 2.2, smoke: Math.random() < .22,
+  });
+  size();
+  const parts = Array.from({ length: 70 }, () => { const p = spawn(); p.y = Math.random() * h; p.life = Math.random() * p.max; return p; });
+  function frame() {
+    if (!running) return;
+    ctx.clearRect(0, 0, w, h);
+    for (const p of parts) {
+      p.life++;
+      p.x += p.vx + Math.sin((p.life + p.r * 40) / 18) * .35;
+      p.y += p.vy * (p.smoke ? .45 : 1);
+      const a = Math.max(0, 1 - p.life / p.max);
+      if (p.smoke) {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = `rgba(230,215,205,${a * .07})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 12 + p.life * .3, 0, 7); ctx.fill();
+      } else {
+        ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4);
+        g.addColorStop(0, `rgba(255,214,120,${a})`);
+        g.addColorStop(.4, `rgba(255,120,30,${a * .6})`);
+        g.addColorStop(1, 'rgba(255,80,0,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(p.x - p.r * 4, p.y - p.r * 4, p.r * 8, p.r * 8);
+      }
+      if (p.life > p.max || p.y < -40) spawn(p);
+    }
+    requestAnimationFrame(frame);
+  }
+  new ResizeObserver(size).observe(canvas);
+  new IntersectionObserver(([e]) => { const was = running; running = e.isIntersecting; if (running && !was) frame(); }).observe(canvas);
+}
+if (!reduced) $$('.fire').forEach(fire);
+
+// ---- Shabbat flip cards
+$$('.flip').forEach(card => {
+  const [front, back] = $$('.face', card);
+  $$('.flip-btn', card).forEach(btn => btn.addEventListener('click', () => {
+    const open = card.classList.toggle('flipped');
+    front.inert = open;
+    back.inert = !open;
+    $('.flip-btn', open ? back : front).focus({ preventScroll: true });
+  }));
+});
+
+// ---- Custom cursor (mouse only)
+if (finePointer && !reduced) {
+  const dot = Object.assign(document.createElement('div'), { className: 'cur-dot' });
+  const ring = Object.assign(document.createElement('div'), { className: 'cur-ring' });
+  document.body.append(dot, ring);
+  document.body.classList.add('has-cursor');
+  let mx = -100, my = -100, rx = mx, ry = my;
+  addEventListener('pointermove', e => {
+    mx = e.clientX; my = e.clientY;
+    dot.style.transform = `translate(${mx}px, ${my}px)`;
+    const t = e.target;
+    const label = t.closest('#carousel, .hero-3d') ? 'Drag' : t.closest('.flip') && !t.closest('button') ? 'Flip' : '';
+    ring.textContent = label;
+    ring.classList.toggle('label', !!label);
+    ring.classList.toggle('hover', !label && !!t.closest('a, button, .tilt, video'));
+    [dot, ring].forEach(c => c.classList.toggle('cur-hide', !!t.closest('iframe')));
+  });
+  document.addEventListener('pointerleave', () => [dot, ring].forEach(c => c.classList.add('cur-hide')));
+  (function follow() {
+    rx += (mx - rx) * .18; ry += (my - ry) * .18;
+    ring.style.transform = `translate(${rx}px, ${ry}px)`;
+    requestAnimationFrame(follow);
+  })();
+  // flipping a card by clicking anywhere on it, matching the "Flip" cursor
+  $$('.flip').forEach(card => card.addEventListener('click', e => {
+    if (!e.target.closest('button, a')) $('.face:not([inert]) .flip-btn', card).click();
+  }));
+}
+
+// ---- Loader: keep it at least 700ms, at most until the page has loaded
+const loader = $('#loader'), shownAt = performance.now();
+const hideLoader = () => setTimeout(() => loader.classList.add('done'), Math.max(0, 700 - (performance.now() - shownAt)));
+document.readyState === 'complete' ? hideLoader() : addEventListener('load', hideLoader);
+setTimeout(() => loader.classList.add('done'), 3500);

@@ -13,6 +13,11 @@
 </head>
 <body>
 
+<div class="loader" id="loader" aria-hidden="true">
+  <div class="coin"><img src="assets/logo.png" alt=""><img class="back" src="assets/logo.png" alt=""></div>
+  <p>Firing up the grill…</p>
+</div>
+
 <div class="progress" aria-hidden="true"></div>
 
 <header class="nav" id="nav">
@@ -46,6 +51,7 @@
         <a class="btn btn-ghost" href="tel:+15164727272">Order by phone</a>
       </div>
       <p class="cert reveal">Certified · Kehilah Kashrus</p>
+      <div class="hero-3d" id="hero3d" aria-hidden="true"></div>
     </div>
     <a class="scroll-hint" href="#moving" aria-label="Scroll down"><span></span></a>
   </section>
@@ -91,6 +97,7 @@
         <article class="kcard tilt reveal">
           <div class="kmedia depth">
             <video autoplay muted loop playsinline poster="assets/joojeh.jpg" aria-label="Saffron joojeh kabob skewers over glowing charcoal"><source src="assets/video/joojeh.mp4" type="video/mp4"></video>
+            <canvas class="fire" aria-hidden="true"></canvas>
           </div>
           <div class="kbody depth-2">
             <h3>The Grill Side</h3>
@@ -98,6 +105,27 @@
             <ul class="chips"><li>Kubideh</li><li>Joojeh</li><li>Barg</li><li>Ash Reshteh</li><li>Pacheh</li><li>Tahdig</li></ul>
           </div>
         </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- SUB BUILDER (assembles on scroll) -->
+  <section class="builder" id="builder" aria-label="Build your own sub">
+    <div class="builder-sticky">
+      <div class="wrap builder-grid">
+        <div class="builder-copy">
+          <p class="eyebrow">Build your own</p>
+          <h2>Stack it <span class="gold">your way.</span></h2>
+          <ol class="steps" id="steps"></ol>
+          <div class="builder-end">
+            <p>On baguette, wrap or whole wheat — subs from <strong class="gold">$8</strong>.</p>
+            <a class="btn btn-gold" href="#menu">See the subs</a>
+          </div>
+        </div>
+        <div class="sub-stage" id="subStage">
+          <svg id="sub" viewBox="0 0 600 440" role="img" aria-label="A sub sandwich being assembled layer by layer"></svg>
+          <div class="sub-shadow"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -149,8 +177,16 @@
       <h2 class="reveal">The table, taken care of.</h2>
       <p class="sub reveal">Two ways to set Friday night — order by Thursday, pick up Friday before Shabbat comes in.</p>
       <div class="sgrid">
-        <article class="scard tilt reveal">
-          <div class="depth-2">
+        <article class="flip reveal">
+          <div class="flip-inner">
+            <div class="face front">
+              <img src="assets/buffet.jpg" alt="" loading="lazy">
+              <small>Shabbat Special № 1</small>
+              <h3>The Friday Table</h3>
+              <div class="price">$99</div>
+              <button class="flip-btn" aria-expanded="false">See what's included <span aria-hidden="true">↻</span></button>
+            </div>
+            <div class="face back scard" inert>
             <small>Shabbat Special № 1</small>
             <h3>The Friday Table</h3>
             <p class="tag">The classic spread, tray by tray</p>
@@ -163,10 +199,20 @@
               <li>Cholent · challah · soda</li>
             </ul>
             <div class="price">$99</div>
+            <button class="flip-btn" aria-expanded="true">Back <span aria-hidden="true">↺</span></button>
+            </div>
           </div>
         </article>
-        <article class="scard featured tilt reveal">
-          <div class="depth-2">
+        <article class="flip reveal">
+          <div class="flip-inner">
+            <div class="face front featured">
+              <img src="assets/joojeh.jpg" alt="" loading="lazy">
+              <small>Shabbat Special № 2 · Feeds 6</small>
+              <h3>The Kabob Feast</h3>
+              <div class="price">$165</div>
+              <button class="flip-btn" aria-expanded="false">See what's included <span aria-hidden="true">↻</span></button>
+            </div>
+            <div class="face back scard featured" inert>
             <small>Shabbat Special № 2 · Feeds 6</small>
             <h3>The Kabob Feast</h3>
             <p class="tag">Good for 6 people</p>
@@ -180,6 +226,8 @@
               <li>Challah · chulent · soda</li>
             </ul>
             <div class="price">$165</div>
+            <button class="flip-btn" aria-expanded="true">Back <span aria-hidden="true">↺</span></button>
+            </div>
           </div>
         </article>
       </div>
@@ -196,6 +244,7 @@
       <source src="assets/video/grill-sunset.mp4" type="video/mp4">
     </video>
     <div class="cat-shade"></div>
+    <canvas class="fire" aria-hidden="true"></canvas>
     <div class="wrap cat-inner">
       <img class="flame-badge reveal" src="assets/flame-logo.jpg" alt="Flame Caterers logo" width="96" height="96" loading="lazy">
       <p class="eyebrow reveal">Flame Caterers</p>
@@ -257,5 +306,6 @@
 <a class="fab" href="tel:+15164727272" aria-label="Call House of Subs">☎</a>
 
 <script src="app.js"></script>
+<script type="module" src="hero3d.js"></script>
 </body>
 </html>
