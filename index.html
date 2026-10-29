@@ -6,6 +6,30 @@
 <title>House of Subs — Glatt Kosher Deli & Persian Grill, Great Neck</title>
 <meta name="description" content="Great Neck's glatt kosher counter for stacked deli subs, charcoal-grilled kabobs, Persian soups, Shabbat packages and catering. 579B Middle Neck Rd, Great Neck NY. (516) 472-7272.">
 <link rel="icon" type="image/png" href="assets/favicon.png">
+<meta name="theme-color" content="#391018">
+<meta property="og:type" content="restaurant">
+<meta property="og:title" content="House of Subs — Glatt Kosher Deli & Persian Grill">
+<meta property="og:description" content="Stacked deli subs, charcoal kabobs, Persian soups, Shabbat packages and catering in Great Neck, NY.">
+<meta property="og:image" content="https://jonathaanbl.github.io/houseofsubs/assets/hero.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Restaurant",
+  "name": "House of Subs",
+  "image": "https://jonathaanbl.github.io/houseofsubs/assets/hero.jpg",
+  "telephone": "+1-516-472-7272",
+  "email": "Nissan@hosgn.com",
+  "servesCuisine": ["Kosher", "Deli", "Persian"],
+  "priceRange": "$$",
+  "address": { "@type": "PostalAddress", "streetAddress": "579B Middle Neck Rd", "addressLocality": "Great Neck", "addressRegion": "NY", "postalCode": "11023", "addressCountry": "US" },
+  "openingHoursSpecification": [
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"], "opens": "11:00", "closes": "21:00" }
+  ],
+  "hasMenu": "https://jonathaanbl.github.io/houseofsubs/#menu",
+  "sameAs": ["https://www.instagram.com/houseofsubsgn/"]
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -43,6 +67,7 @@
     </video>
     <div class="hero-shade"></div>
     <div class="wrap hero-inner">
+      <p class="status" id="status" role="status" hidden></p>
       <p class="eyebrow reveal">Great Neck, NY · Glatt Kosher</p>
       <h1 class="split">Where pastrami<br>meets <em>kubideh.</em></h1>
       <p class="lede reveal">Stacked deli subs, charcoal-grilled kabobs, Persian soups and khoresht — with a salad bar, Shabbat packages and full-service catering.</p>
@@ -74,7 +99,7 @@
       </div>
       <div class="addr-flip">
         <div class="addr"><small>Now</small><b>579B</b></div>
-        <span class="arrow">→</span>
+        <span class="arrow" aria-hidden="true">→</span>
         <div class="addr new"><small>Coming soon</small><b>605</b><em>Middle Neck Rd</em></div>
       </div>
     </div>
@@ -137,7 +162,7 @@
       <h2 class="reveal">Spin the spread.</h2>
       <p class="hint reveal">Drag, swipe or use the arrows.</p>
     </div>
-    <div class="carousel" id="carousel" tabindex="0" aria-roledescription="carousel">
+    <div class="carousel" id="carousel" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Kitchen photos — use left and right arrow keys">
       <div class="ring" id="ring">
         <figure><img src="assets/joojeh.jpg" alt="Joojeh kabob over charcoal"></figure>
         <figure><img src="assets/schnitzel.jpg" alt="Schnitzel subs"></figure>
@@ -304,6 +329,7 @@
 </footer>
 
 <a class="fab" href="tel:+15164727272" aria-label="Call House of Subs">☎</a>
+<button class="motion-toggle" id="motionToggle" aria-pressed="false">❚❚ Pause motion</button>
 
 <script src="app.js"></script>
 <script type="module" src="hero3d.js"></script>

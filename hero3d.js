@@ -136,14 +136,15 @@ function init() {
   let running = false, t = 0;
   function frame() {
     if (!running) return;
-    t += .016;
-    if (!reduced) spin += .004;
+    const paused = reduced || document.documentElement.classList.contains('paused');
+    if (!paused) t += .016;
+    if (!paused) spin += .004;
     spin += vel;
     vel *= .94;
     kabob.rotation.set(tx - .25, spin, -.32 + ty * .2);
     kabob.position.y = Math.sin(t * 1.3) * .12;
     const p = embGeo.attributes.position;
-    for (let i = 0; i < N; i++) {
+    for (let i = 0; i < N && !paused; i++) {
       let y = p.getY(i) + speed[i];
       if (y > 3.5) y = -3;
       p.setY(i, y);

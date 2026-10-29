@@ -159,6 +159,10 @@ const setMenu = open => {
   links.classList.toggle('open', open);
   nav.classList.toggle('menu-open', open);
   document.body.style.overflow = open ? 'hidden' : '';
+  // keep keyboard focus inside the open overlay
+  [$('main'), $('footer')].forEach(el => { el.inert = open; });
+  if (open) $('a', links).focus();
+  else if (links.contains(document.activeElement)) burger.focus();
 };
 burger.addEventListener('click', () => setMenu(burger.getAttribute('aria-expanded') !== 'true'));
 links.addEventListener('click', e => { if (e.target.closest('a')) setMenu(false); });
@@ -215,15 +219,52 @@ const end = () => {
 carousel.addEventListener('pointerup', end);
 carousel.addEventListener('pointercancel', end);
 function stop() { clearInterval(auto); }
-function restart() { stop(); if (!reduced) auto = setInterval(() => spin(angle - step), 3200); }
+function restart() { stop(); if (!reduced && !isPaused() && !carousel.matches(':hover, :focus-within')) auto = setInterval(() => spin(angle - step), 3200); }
 new IntersectionObserver(([e]) => e.isIntersecting ? restart() : stop()).observe(carousel);
+// hold still while someone is looking at / focused on it
+carousel.addEventListener('pointerenter', stop);
+carousel.addEventListener('pointerleave', restart);
+carousel.addEventListener('focusin', stop);
+carousel.addEventListener('focusout', restart);
 
 // ---- Highlight today's hours (New York time)
 const day = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })).getDay();
 $$('.htable tr').forEach(tr => tr.classList.toggle('today', tr.dataset.days.split(',').includes(String(day))));
 
 // ---- Pause background videos when off-screen (saves battery on phones)
-$$('video').forEach(v => new IntersectionObserver(([e]) => { e.isIntersecting ? v.play().catch(() => {}) : v.pause(); }).observe(v));
+const videoSeen = new Map();
+const syncVideo = v => (videoSeen.get(v) && !isPaused() ? v.play().catch(() => {}) : v.pause());
+$$('video').forEach(v => {
+  if (reduced) v.removeAttribute('autoplay');
+  new IntersectionObserver(([e]) => { videoSeen.set(v, e.isIntersecting); syncVideo(v); }).observe(v);
+});
+
+// ---- Pause-motion toggle (videos, carousel autoplay, ticker, embers, 3D spin)
+function isPaused() { return reduced || document.documentElement.classList.contains('paused'); }
+const motionBtn = $('#motionToggle');
+motionBtn.addEventListener('click', () => {
+  const paused = document.documentElement.classList.toggle('paused');
+  motionBtn.setAttribute('aria-pressed', paused);
+  motionBtn.textContent = paused ? '▶ Play motion' : '❚❚ Pause motion';
+  $$('video').forEach(syncVideo);
+  paused ? stop() : restart();
+});
+
+// ---- Open / closed status (New York time)
+// shortcut: Friday closing is "1 hr before Shabbat" since sunset isn't computed; upgrade with a sunset table if needed.
+function openStatus(day, mins) {
+  const OPEN = 11 * 60, CLOSE = 21 * 60;
+  if (day === 6) return [false, 'Closed for Shabbat · opens Sunday 11 am'];
+  if (day === 5) return mins < OPEN ? [false, 'Closed · opens 11 am'] : [true, 'Open · pickup until 1 hr before Shabbat'];
+  if (mins < OPEN) return [false, 'Closed · opens 11 am'];
+  if (mins < CLOSE) return [true, 'Open now · until 9 pm'];
+  return [false, day === 4 ? 'Closed · opens Friday 11 am' : 'Closed · opens tomorrow 11 am'];
+}
+console.assert(openStatus(1, 12 * 60)[0] && !openStatus(1, 22 * 60)[0] && !openStatus(6, 12 * 60)[0] && openStatus(5, 11 * 60)[0], 'openStatus self-check');
+const ny = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+const [isOpen, label] = openStatus(ny.getDay(), ny.getHours() * 60 + ny.getMinutes());
+Object.assign($('#status'), { textContent: label, hidden: false });
+$('#status').classList.toggle('open', isOpen);
 
 // ---- Count prices the first time the menu scrolls into view
 new IntersectionObserver(([e], obs) => {
@@ -283,6 +324,7 @@ function fire(canvas) {
   const parts = Array.from({ length: 70 }, () => { const p = spawn(); p.y = Math.random() * h; p.life = Math.random() * p.max; return p; });
   function frame() {
     if (!running) return;
+    if (isPaused()) return requestAnimationFrame(frame);
     ctx.clearRect(0, 0, w, h);
     for (const p of parts) {
       p.life++;
