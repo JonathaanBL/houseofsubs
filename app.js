@@ -147,6 +147,7 @@ addEventListener('scroll', () => {
       a.classList.toggle('active', r.top < 140 && r.bottom > 140);
     });
     updateBuilder();
+    updateStory();
     ticking = false;
   });
 }, { passive: true });
@@ -398,3 +399,60 @@ const loader = $('#loader'), shownAt = performance.now();
 const hideLoader = () => setTimeout(() => loader.classList.add('done'), Math.max(0, 700 - (performance.now() - shownAt)));
 document.readyState === 'complete' ? hideLoader() : addEventListener('load', hideLoader);
 setTimeout(() => loader.classList.add('done'), 3500);
+
+// ---- Story words light up as the paragraph passes eye level
+// ported from 21st.dev "Reading Text Reveal" (waleedkibhen): same eye-level progress + eased catch-up
+const story = $('.story-text');
+const KEYS = ['pastrami', 'joojeh', 'both'];
+story.innerHTML = story.textContent.trim().split(/\s+/)
+  .map(w => `<span class="w${KEYS.some(k => w.toLowerCase().startsWith(k)) ? ' key' : ''}">${w}</span>`).join(' ');
+const storyWords = $$('.w', story);
+let storyTarget = 0, storyNow = 0, storyRaf = null;
+function storyTick() {
+  storyNow += (storyTarget - storyNow) * .12;
+  const settled = Math.abs(storyTarget - storyNow) < .001;
+  if (settled) storyNow = storyTarget;
+  const n = Math.floor(storyNow * storyWords.length + .0001);
+  storyWords.forEach((w, i) => w.classList.toggle('lit', i < n));
+  storyRaf = settled ? null : requestAnimationFrame(storyTick);
+}
+function updateStory() {
+  const r = story.getBoundingClientRect(), eye = innerHeight * .62;
+  storyTarget = reduced ? 1 : Math.min(1, Math.max(0, (eye - r.top) / r.height));
+  if (reduced || document.hidden) return storyTick(); // no rAF in hidden tabs: jump straight there
+  storyRaf ??= requestAnimationFrame(storyTick);
+}
+updateStory();
+
+// ---- Spotlight glow that follows the pointer on cards
+// ported from 21st.dev "Spotlight Card" (preetsuthar17)
+$$('.kcard, .face.back, .moving-inner').forEach(el => {
+  el.classList.add('spot');
+  el.addEventListener('pointermove', e => {
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--sx', `${e.clientX - r.left}px`);
+    el.style.setProperty('--sy', `${e.clientY - r.top}px`);
+  });
+});
+
+// ---- Ticker speeds up with scroll speed and flips direction when scrolling up
+// ported from 21st.dev "Scroll Based Velocity" (dillionverma / Magic UI), without framer-motion
+const track = $('.track');
+if (!reduced) {
+  track.style.animation = 'none';
+  let x = 0, dir = -1, lastY = scrollY, vel = 0, last = performance.now();
+  requestAnimationFrame(function loop(now) {
+    const dt = Math.max(1, Math.min(64, now - last));
+    last = now;
+    vel += ((scrollY - lastY) / dt * 1000 - vel) * .1; // smoothed px/s, like useSpring(useVelocity)
+    lastY = scrollY;
+    if (vel > 20) dir = -1; else if (vel < -20) dir = 1;
+    if (!isPaused()) {
+      const half = track.scrollWidth / 2; // the track holds the list twice
+      x += dir * 60 * (1 + Math.abs(vel) / 250) * dt / 1000;
+      x = ((x % half) - half) % half;     // keep x in (-half, 0] so the loop is seamless
+      track.style.transform = `translateX(${x}px)`;
+    }
+    requestAnimationFrame(loop);
+  });
+}
